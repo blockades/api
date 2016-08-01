@@ -41,7 +41,7 @@ trait OpenBlockchainStack extends ScalatraServlet with ScalateSupport {
   }
 
   get("/swagger-ui/*") {
-    val resourcePath = "/META-INF/resources/webjars/swagger-ui/2.0.21/" + params("splat")
+    val resourcePath = "src/main/webapp/docs/index.html" + params("splat")
     Option(getClass.getResourceAsStream(resourcePath)) match {
       case Some(inputStream) => {
         contentType = servletContext.getMimeType(resourcePath)
