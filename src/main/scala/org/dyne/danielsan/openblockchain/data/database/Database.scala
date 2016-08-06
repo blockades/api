@@ -36,6 +36,15 @@ class Database(val keyspace: KeySpaceDef) extends DatabaseImpl(keyspace) {
     ChainDatabase.btc.getCount(hash)
   }
 
+  def saveOrUpdateBlockOpReturnTransactionCount(counts: BlockOpReturnTransactionCounts): Future[ResultSet] = {
+    Batch.logged
+    ChainDatabase.bortc.increment(counts)
+  }
+
+  def getBlockOpReturnTransactionCountByHash(hash: String): Future[Option[Long]] = {
+    ChainDatabase.bortc.getCount(hash)
+  }
+
   def listAllBlocks = {
     Batch.logged
     ChainDatabase.block.listAll
@@ -60,6 +69,8 @@ class Database(val keyspace: KeySpaceDef) extends DatabaseImpl(keyspace) {
   object tx extends ConcreteTransactionsModel with keyspace.Connector
 
   object btc extends ConcreteBlockTransactionCountsModel with keyspace.Connector
+
+  object bortc extends ConcreteBlockOpReturnTransactionCountsModel with keyspace.Connector
 
 }
 

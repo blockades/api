@@ -1,7 +1,7 @@
 package org.dyne.danielsan.openblockchain.client
 
 import org.dyne.danielsan.openblockchain.data.entity.{Block, Transaction}
-import org.dyne.danielsan.openblockchain.data.model.BlockTransactionCounts
+import org.dyne.danielsan.openblockchain.data.model.{BlockOpReturnTransactionCounts, BlockTransactionCounts}
 import org.json4s.JsonDSL._
 import org.json4s.jackson.JsonMethods._
 import org.json4s.jackson.Serialization.write
@@ -10,50 +10,56 @@ import org.json4s.{DefaultFormats, _}
 import scala.language.postfixOps
 import scalaj.http.{Base64, Http}
 
-/*
-Known limitation is that there is alot of repition (i.e. not DRY) - within the methods
-themselves - is it possibleto abstract these out into another method so that we can DRY
-it up
- */
-
 /**
   * Created by dan_mi_sun on 10/03/2016.
+  *
+  *  docker exec -it bitcoind bitcoin-cli -conf=/etc/bitcoin.conf getblockhash 1
+  *  docker exec -it bitcoind bitcoin-cli -conf=/etc/bitcoin.conf getblock 00000000839a8e6886ab5951d76f411475428afc90947
+  *                                                                        ee320161bbf18eb6048
+  *  docker exec -it bitcoind bitcoin-cli -conf=/etc/bitcoin.conf getrawtransaction 0e3e2357e806b6cdb1f70b54c3a3a17b6714
+  *                                                                                 ee1f0e68bebb44a74b1efd512098
+  *  docker exec -it bitcoind bitcoin-cli -conf=/etc/bitcoin.conf decoderawtransaction 010000000100000000000000000000000
+  *                                                                                    000000000000000000000000000000000
+  *                                                                                    00000000ffffffff0704ffff001d0104f
+  *                                                                                    fffffff0100f2052a0100000043410496
+  *                                                                                    b538e853519c726a2c91e61ec11600ae1
+  *                                                                                    390813a627c66fb8be7947be63c52da75
+  *                                                                                    89379515d4e0a604f8141781e62294721
+  *                                                                                    166bf621e73a82cbf2342c858eeac0000
+  *                                                                                    0000
+  *
   */
+
 class BitcoinClient {
 
   implicit val formats = DefaultFormats
 
   val baseUrl = "http://127.0.0.1:8332"
 
-  def decodeRawTransaction(id: Int): Transaction = {
-    val rawTx = getRawTransaction(id)
-    val request = BtcRequest("decoderawtransaction", List(rawTx))
+  def getRequestBody(method: String, params: List[Any]): String = {
+    val request = BtcRequest(method, params)
     val json = write(request)
+    println("Raw req JSON: " + json)
     val resp = Http(baseUrl).postData(json)
       .header("content-type", "application/json")
       .header("Authorization", auth)
       .asString
       .body
-    (parse(resp) \ "result").extract[Transaction]
+    println("Raw resp JSON: " + resp)
+    resp
   }
 
-  def getRawTransaction(id: Int): String = {
-    val txId = extractTransactionIds(id)
-    val request = BtcRequest("getrawtransaction", List(txId))
-    val json = write(request)
-    val resp = Http(baseUrl).postData(json)
-      .header("content-type", "application/json")
-      .header("Authorization", auth)
-      .asString
-      .body
-    (parse(resp) \ "result").extract[String]
+  def getRequestResultAs[T](method: String, params: List[Any])(implicit mf: Manifest[T]): T = {
+    val resp = getRequestBody(method, params)
+    (parse(resp) \ "result").extract[T]
   }
 
-  // Known limitation is that this is only going to take the head of the list
-  // Many blocks have many TransactionsIds within a block
-  def extractTransactionIds(id: Int): String = {
-    val transactionList = getTransactionIdsFromWithinBlock(id)
-    transactionList.head
+  def getRawTransaction(id: Int): List[Transaction] = {
+    extractTransactionIds(id).map(tx => getRequestResultAs[Transaction]("getrawtransaction", List(tx, 1)))
+  }
+
+  def extractTransactionIds(id: Int): List[String] = {
+    getTransactionIdsFromWithinBlock(id)
   }
 
   def getTransactionIdsFromWithinBlock(id: Int): List[String] = {
@@ -63,10 +69,10 @@ class BitcoinClient {
 
   def getTransactionCountFromWithinBlock(id: Int): String = {
     val block = getBlockForId(id)
-    val json = ("blockTransactionCount" ->
-                  ("hash" -> block.hash) ~
-                  ("height" -> block.height) ~
-                  ("num_transactions" -> block.tx.length))
+    val json = "blockTransactionCount" ->
+      ("hash" -> block.hash) ~
+        ("height" -> block.height) ~
+        ("num_transactions" -> block.tx.length)
     compact(render(json))
   }
 
@@ -74,6 +80,30 @@ class BitcoinClient {
     val counts = getTransactionCountFromWithinBlock(id)
     val btc = parse(counts) \ "blockTransactionCount"
     btc.extract[BlockTransactionCounts]
+  }
+
+  def isOpReturnTransaction(id: Int): String = {
+    val txs = getRawTransaction(id)
+    var count = 0
+    val hash = txs.map(tx => tx.blockhash)
+    val blockhash = hash.head
+    val transId = txs.map(tx => tx.txid)
+    val txid = transId.head
+    txs.map(tx => tx.vout.map(v => if (v.scriptPubKey.asm.contains("OP_RETURN")) {
+      count += 1
+    } else {
+    }))
+    val json = "blockOpReturnTransactionCount" ->
+      ("hash" -> blockhash) ~
+        ("txid" -> txid) ~
+        ("num_op_return_transactions" -> count)
+    compact(render(json))
+  }
+
+  def updateBlockOpReturnTransactionCount(id: Int): BlockOpReturnTransactionCounts = {
+    val counts = isOpReturnTransaction(id)
+    val bortc = parse(counts) \ "blockOpReturnTransactionCount"
+    bortc.extract[BlockOpReturnTransactionCounts]
   }
 
   def getBlockForId(id: Int): Block = {
@@ -84,32 +114,16 @@ class BitcoinClient {
   }
 
   def getBlockHashForId(id: Int): String = {
-    val request = BtcRequest("getblockhash", List(id))
-    val json = write(request)
-    val resp = Http(baseUrl).postData(json)
-      .header("content-type", "application/json")
-      .header("Authorization", auth)
-      .asString
-      .body
-    (parse(resp) \ "result").extract[String]
+    getRequestResultAs[String]("getblockhash", List(id))
   }
 
   def getBlockForHash(hash: String): String = {
-    val request = BtcRequest("getblock", List(hash))
-    val json = write(request)
-    Http(baseUrl).postData(json)
-      .header("content-type", "application/json")
-      .header("Authorization", auth)
-      .asString
-      .body
+    getRequestBody("getblock", List(hash))
   }
 
-  private
-
-  def auth = {
+  private def auth = {
     "Basic " + Base64.encodeString("test:test1")
   }
 }
 
 case class BtcRequest(method: String, params: List[Any])
-
