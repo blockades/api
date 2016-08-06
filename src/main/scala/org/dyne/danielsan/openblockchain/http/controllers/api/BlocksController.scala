@@ -11,7 +11,6 @@ import org.scalatra.swagger.Swagger
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-
 /**
   * Created by dan_mi_sun on 20/05/2016.
   */
@@ -24,7 +23,6 @@ class BlocksController(implicit val swagger: Swagger) extends OpenBlockchainStac
     contentType = formats("json")
   }
 
-
   get("/", operation(getBlocks)) {
     ChainDatabase.listAllBlocks
   }
@@ -35,12 +33,19 @@ class BlocksController(implicit val swagger: Swagger) extends OpenBlockchainStac
       case Some(block) => block
       case None => halt(404, "")
     }
-
   }
 
   get("/transaction-count/:id", operation(getBlockTransactionCount)) {
     val id = params("id")
     Await.result(ChainDatabase.getBlockTransactionCountByHash(id), 3.seconds) match {
+      case Some(btc) => btc
+      case None => halt(404, "")
+    }
+  }
+
+  get("/op-return-transaction-count/:id", operation(getBlockOpReturnTransactionCount)) {
+    val id = params("id")
+    Await.result(ChainDatabase.getBlockOpReturnTransactionCountByHash(id), 3.seconds) match {
       case Some(btc) => btc
       case None => halt(404, "")
     }

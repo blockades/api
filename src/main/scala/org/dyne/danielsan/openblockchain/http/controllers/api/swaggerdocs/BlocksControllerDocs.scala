@@ -29,4 +29,13 @@ trait BlocksControllerDocs extends SwaggerSupport {
       parameters
       pathParam[String]("id").description("ID of the block that needs to be fetched").required
       responseMessage StringResponseMessage(200, "Block Transaction-count retrieved"))
+
+  val getBlockOpReturnTransactionCount =
+    (apiOperation[Int]("getBlockOpreturnTransactionCount")
+      summary "Shows the number of OP_RETURN transactions within a block"
+      notes "Retrieves OP_RETURN transaction count from block by its hash."
+      parameters
+      pathParam[String]("id").description("ID of the block that needs to be fetched").required
+      responseMessage StringResponseMessage(200, "Block Transaction-count retrieved"))
+
 }
