@@ -7,6 +7,7 @@ import org.json4s.{DefaultFormats, Formats}
 import org.scalatra.FutureSupport
 import org.scalatra.json.JacksonJsonSupport
 import org.scalatra.swagger.Swagger
+import scala.concurrent.ExecutionContext.Implicits.global
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -25,7 +26,13 @@ class BlocksController(implicit val swagger: Swagger) extends OpenBlockchainStac
   }
 
   get("/", operation(getBlocks)) {
-    ChainDatabase.listAllBlocks
+    val future = ChainDatabase.listAllBlocks
+    future.onSuccess {
+      case blocks =>
+        response.setHeader("X-Pagination-Page", "1")
+        response.setHeader("X-Pagination-Count", blocks.size.toString)
+    }
+    future
   }
 
   get("/:id", operation(getBlock)) {
