@@ -1,7 +1,10 @@
 package org.dyne.danielsan.openblockchain
 
+import org.slf4j.LoggerFactory
+
 class ScalatraBootstrapServlet extends OpenBlockchainStack {
 
+  val logger = LoggerFactory.getLogger(getClass)
   get("/") {
     <html>
       <body>
@@ -14,6 +17,7 @@ class ScalatraBootstrapServlet extends OpenBlockchainStack {
   }
 
   get("/hello") {
+    logger.info("foo")
     "Hello world!"
   }
 
