@@ -14,7 +14,8 @@ import scala.concurrent.duration._
 /**
   * Created by dan_mi_sun on 20/05/2016.
   */
-class BlocksController(implicit val swagger: Swagger) extends OpenBlockchainStack with FutureSupport with JacksonJsonSupport with BlocksControllerDocs {
+class BlocksController(implicit val swagger: Swagger) extends OpenBlockchainStack
+  with FutureSupport with JacksonJsonSupport with BlocksControllerDocs {
 
   protected implicit lazy val jsonFormats: Formats = DefaultFormats
   val executor = scala.concurrent.ExecutionContext.global
