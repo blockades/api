@@ -1,13 +1,9 @@
 import javax.servlet.ServletContext
 
 import org.dyne.danielsan.openblockchain.data.database.ChainDatabase
-import org.dyne.danielsan.openblockchain.http.controllers.api.{BlocksController, TransactionsController}
+import org.dyne.danielsan.openblockchain.http.controllers.api.{BlocksController, TransactionsController, VisualizationsController}
 import org.dyne.danielsan.openblockchain.http.controllers.{ApiDocsController, OpenBlockchainSwagger}
 import org.scalatra._
-
-import scala.concurrent.Await
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
 
 class ScalatraBootstrap extends LifeCycle {
 
@@ -24,7 +20,7 @@ class ScalatraBootstrap extends LifeCycle {
     context.mount(new ApiDocsController, "/api-docs/")
     context.mount(new BlocksController, "/api/blocks")
     context.mount(new TransactionsController, "/api/transactions")
-
+    context.mount(new VisualizationsController, "api/visualizations")
 
   }
 }
