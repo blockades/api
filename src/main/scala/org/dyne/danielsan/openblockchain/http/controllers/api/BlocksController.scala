@@ -25,39 +25,47 @@ class BlocksController(implicit val swagger: Swagger) extends OpenBlockchainStac
     contentType = formats("json")
   }
 
-  get("/", operation(getBlocks)) {
-    val future = ChainDatabase.listAllBlocks
-    future.onSuccess {
-      case blocks =>
-        response.setHeader("X-Pagination-Page", "1")
-        response.setHeader("X-Pagination-Count", blocks.size.toString)
-    }
-    future
-  }
+//  get("/", operation(getBlocks)) {
+//    val future = ChainDatabase.listAllBlocks
+//    future.onSuccess {
+//      case blocks =>
+//        response.setHeader("X-Pagination-Page", "1")
+//        response.setHeader("X-Pagination-Count", blocks.size.toString)
+//    }
+//    future
+//  }
 
   get("/:id", operation(getBlock)) {
     val id = params("id")
-    Await.result(ChainDatabase.getBlockByHash(id), 3.seconds) match {
-      case Some(block) => block
-      case None => halt(404, "")
+    if (id.length == 64) {
+      halt(400, "hash not supported yet")
+      //      Await.result(ChainDatabase.getBlockByHash(id), 3.seconds) match {
+      //        case Some(block) => block
+      //        case None => halt(404, "")
+      //      }
+    } else {
+      Await.result(ChainDatabase.getBlock(id.toInt), 3.seconds) match {
+        case Some(block) => block
+        case None => halt(404, "")
+      }
     }
   }
 
-  get("/transaction-count/:id", operation(getBlockTransactionCount)) {
-    val id = params("id")
-    Await.result(ChainDatabase.getBlockTransactionCountByHash(id), 3.seconds) match {
-      case Some(btc) => btc
-      case None => halt(404, "")
-    }
-  }
-
-  get("/op-return-transaction-count/:id", operation(getBlockOpReturnTransactionCount)) {
-    val id = params("id")
-    Await.result(ChainDatabase.getBlockOpReturnTransactionCountByHash(id), 3.seconds) match {
-      case Some(bortc) => bortc
-      case None => halt(404, "")
-    }
-  }
+//  get("/transaction-count/:id", operation(getBlockTransactionCount)) {
+//    val id = params("id")
+//    Await.result(ChainDatabase.getBlockTransactionCountByHash(id), 3.seconds) match {
+//      case Some(btc) => btc
+//      case None => halt(404, "")
+//    }
+//  }
+//
+//  get("/op-return-transaction-count/:id", operation(getBlockOpReturnTransactionCount)) {
+//    val id = params("id")
+//    Await.result(ChainDatabase.getBlockOpReturnTransactionCountByHash(id), 3.seconds) match {
+//      case Some(bortc) => bortc
+//      case None => halt(404, "")
+//    }
+//  }
 
 }
 

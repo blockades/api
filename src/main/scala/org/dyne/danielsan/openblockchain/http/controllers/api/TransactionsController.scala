@@ -24,17 +24,16 @@ class TransactionsController(implicit val swagger: Swagger) extends OpenBlockcha
     contentType = formats("json")
   }
 
-  get("/", operation(getTransactions)) {
-    ChainDatabase.listAllTransactions
-  }
+//  get("/", operation(getTransactions)) {
+//    ChainDatabase.listAllTransactions
+//  }
 
   get("/:id", operation(getTransaction)) {
     val id = params("id")
-    Await.result(ChainDatabase.getTransactionByTxid(id), 3.seconds) match {
-      case Some(block) => block
+    Await.result(ChainDatabase.getTransaction(id), 3.seconds) match {
+      case Some(transaction) => transaction
       case None => halt(404, "")
     }
-
   }
 
 
