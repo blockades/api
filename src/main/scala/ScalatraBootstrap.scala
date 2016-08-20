@@ -20,7 +20,7 @@ class ScalatraBootstrap extends LifeCycle {
     context.mount(new ApiDocsController, "/api-docs/")
     context.mount(new BlocksController, "/api/blocks")
     context.mount(new TransactionsController, "/api/transactions")
-    context.mount(new VisualizationsController, "api/visualizations")
+    context.mount(new VisualizationsController, "/api/visualizations")
 
   }
 }
